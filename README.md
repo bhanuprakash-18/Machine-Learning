@@ -33,4 +33,4 @@ Each project folder contains:
 
 1. Clone this repository:  
    ```bash
-   git clone https://github.com/your-username/ml-projects.git
+   git clone https://github.com/bhanuprakash-18/machine-learning-projects.git
