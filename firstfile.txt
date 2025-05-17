@@ -1,3 +1,0 @@
-Hello There!
-Bye...
-first commit successfully done
