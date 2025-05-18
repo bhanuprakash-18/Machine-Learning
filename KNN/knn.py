@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from collections import Counter
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
@@ -7,13 +8,13 @@ from sklearn.datasets import load_iris
 
 
 class KNearestNeighbors:
-    def __init__(self, k=3, p=2):
+    def __init__(self, k, p=2):
         """
         Initialize k-NN classifier.
         
         Parameters:
         - k: number of nearest neighbors to consider
-        - p: parameter for Minkowski distance (1=Manhattan, 2=Euclidean, etc.)
+        - p: parameter for Minkowski distance (1=Manhattan, 2=Euclidean, etc.). Here we use default euclidean distance p=2
         """
         self.k = k
         self.p = p
@@ -36,68 +37,50 @@ class KNearestNeighbors:
         self.X_train = X
         self.y_train = y
         
-    def predict(self, X):
+    def predict(self, X_test):
         """Predict labels for test data."""
-        predictions = [self._predict(x) for x in X]
+        predictions = [self._predict(X_test.iloc[i]) for i in range(len(X_test))]
         return np.array(predictions)
     
     def _predict(self, x):
         """Helper function to predict label for a single sample."""
         # Compute distances between x and all examples in the training set
-        distances = [self.minkowski_distance(x, x_train) for x_train in self.X_train]
+        distances = [self.minkowski_distance(x, self.X_train.iloc[i]) for i in range(len(self.X_train))]
         
         # Sort by distance and return indices of the first k neighbors
         k_indices = np.argsort(distances)[:self.k]
         
         # Extract the labels of the k nearest neighbor training samples
-        k_nearest_labels = [self.y_train[i] for i in k_indices]
+        k_nearest_labels = y_train.iloc[k_indices]
         
         # Return the most common class label (handle ties by reducing k)
-        most_common = Counter(k_nearest_labels).most_common(1)
-        return most_common[0][0]
-
-# Example usage demonstrating the curse of dimensionality
-def demonstrate_curse_of_dimensionality():
-    # Create low and high dimensional datasets
-    X_low, y_low = make_classification(n_samples=1000, n_features=2, n_informative=2, 
-                                      n_redundant=0, random_state=42)
-    X_high, y_high = make_classification(n_samples=1000, n_features=100, n_informative=10, 
-                                        n_redundant=90, random_state=42)
-    
-    # Split into train and test
-    X_train_low, X_test_low, y_train_low, y_test_low = train_test_split(X_low, y_low, test_size=0.2, random_state=42)
-    X_train_high, X_test_high, y_train_high, y_test_high = train_test_split(X_high, y_high, test_size=0.2, random_state=42)
-    
-    # Train and evaluate on low dimensional data
-    knn_low = KNearestNeighbors(k=5)
-    knn_low.fit(X_train_low, y_train_low)
-    pred_low = knn_low.predict(X_test_low)
-    acc_low = accuracy_score(y_test_low, pred_low)
-    
-    # Train and evaluate on high dimensional data
-    knn_high = KNearestNeighbors(k=5)
-    knn_high.fit(X_train_high, y_train_high)
-    pred_high = knn_high.predict(X_test_high)
-    acc_high = accuracy_score(y_test_high, pred_high)
-    
-    print(f"Accuracy on low-dimensional data (d=2): {acc_low:.2f}")
-    print(f"Accuracy on high-dimensional data (d=100): {acc_high:.2f}")
-    print("\nNotice how performance degrades with higher dimensions due to the curse of dimensionality!")
+        most_common = k_nearest_labels.mode()
+        return most_common
+def error_rate(y_true, y_pred):
+    """Calculate the error rate."""
+    return np.mean(y_true != y_pred)
 
 if __name__ == "__main__":
-    # Simple example
+    # Load the iris dataset
     iris = load_iris()
-    iris.head()
-    iris.info()
-    X, y = make_classification(n_samples=100, n_features=4, random_state=42)
+    iris_df = pd.DataFrame(data=iris.data, columns=iris.feature_names)
+    iris_df['target'] = iris.target
+    X, y = iris_df.iloc[:, :-1], iris_df['target']
+    # Split the dataset into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
     knn = KNearestNeighbors(k=3)
     knn.fit(X_train, y_train)
-    predictions = knn.predict(X_test)
+    predictions = knn.predict(X_test).reshape(-1)
+
+    print(np.array(y_test).reshape(-1),"\n", predictions.reshape(-1))
+    error_rate = error_rate(y_test, predictions)
+    print(f"Error rate: {error_rate:.2f}")
     
-    print(f"Test accuracy: {accuracy_score(y_test, predictions):.2f}")
+    # Write results to results.txt
+    with open("KNN/results/results.txt", "w") as f:
+        f.write("True labels:\n")
+        f.write(np.array2string(np.array(y_test).reshape(-1)))
+        f.write("\nPredictions:\n")
+        f.write(np.array2string(predictions.reshape(-1)))
+        f.write(f"\nError rate: {error_rate:.2f}\n")
     
-    # Demonstrate curse of dimensionality
-    print("\nDemonstrating the curse of dimensionality:")
-    demonstrate_curse_of_dimensionality()
