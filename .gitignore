@@ -14,5 +14,6 @@ results/
 
 # Environment files
 .env
-venv_proj/
+venv/
+.venv
 
